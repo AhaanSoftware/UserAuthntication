@@ -4,7 +4,7 @@ import "./AuthPage.css";
 import Login from "./User/Login";
 import Register from "./User/Register";
 
-const AuthPage = ({ onLoginSuccess, isMemberLogin }) => {
+const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false); // Flag to toggle sign-up/login form for user
   const [registerData, setRegisterData] = useState({ email: "", password: "" });
   const navigate = useNavigate();
@@ -20,9 +20,8 @@ const AuthPage = ({ onLoginSuccess, isMemberLogin }) => {
   }, [location.pathname]);
 
   const toggleForm = () => {
-    setIsSignUp((prevState) => !prevState
-  
-  );
+    setIsSignUp((prevState) => !prevState);
+    
   };
 
   const handleRegisterSuccess = (email, password) => {
@@ -33,40 +32,25 @@ const AuthPage = ({ onLoginSuccess, isMemberLogin }) => {
 
   return (
     <div className="background">
-    <div className={`auth-container ${isSignUp ? "active" : ""}`}>
-      <div className="form-container sign-in-container">
-        {isMemberLogin ? (
-          <MemberLogin onLoginSuccess={onLoginSuccess} /> 
-        ) : (
-          <Login onLoginSuccess={onLoginSuccess} preFillData={registerData} /> 
-        )}
-      </div>
-
-      {/* Only show sign-up container if it's not member login */}
-      {!isMemberLogin && (
-        <div className="form-container sign-up-container">
-          <Register onRegisterSuccess={handleRegisterSuccess} />
+      <div className={`auth-container ${isSignUp ? "active" : ""}`}>
+        <div className="form-container sign-in-container">
+          {!isSignUp ? (
+            <Login onLoginSuccess={handleRegisterSuccess} preFillData={registerData} />
+          ) : (
+            <Register onRegisterSuccess={handleRegisterSuccess} />
+          )}
         </div>
-      )}
 
-      <div className="overlay">
-        <h1>{isMemberLogin ? "Welcome Back, Member!" : "Welcome Back!"}</h1>
-        <p>
-          {isMemberLogin
-            ? "Members can log in here, no sign-up available."
-            : "If you already have an account, please log in here."}
-        </p>
-        {/* Only show the toggle button if it's not member login */}
-        {!isMemberLogin && (
-          <button onClick={toggleForm}>
+        <div className="overlay">
+          <h1>Welcome to Our Page</h1>
+          <p>{ !isSignUp ? "Create a new account." : "If you already have an account, please log in."}</p>
+          <button onClick={toggleForm} className="login">
             {isSignUp ? "Sign In" : "Sign Up"}
           </button>
-        )}
+        </div>
       </div>
     </div>
-    </div>
   );
- 
 };
 
 export default AuthPage;

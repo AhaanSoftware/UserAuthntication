@@ -1,11 +1,13 @@
-/* App.css */
-
-/* Style for rounded inputs */
+.login-container{
+  
+}
 .form-control-rounded {
     
    
     transition: all 0.3s ease;
   }
+
+
   
   .form-control-rounded:focus {
     border-color: #4CAF50;
