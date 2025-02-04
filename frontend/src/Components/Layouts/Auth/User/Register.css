@@ -1,6 +1,6 @@
 /* Signup Container */
-.signup-container {
-  background: linear-gradient(135deg, #7ad8c4, #d8e69b);
+.signup-container, .login-container {
+  background: linear-gradient(135deg, #81ddc9, #d8e69b);
     min-height: 100vh;
     
   }
@@ -48,7 +48,8 @@
   /* Buttons */
   .otp-button,
   .verify-button,
-  .submit-button {
+  .submit-button,
+  .login {
     border-radius: 8px;
     padding: 12px;
     font-size: 16px;
@@ -74,9 +75,12 @@
     background-color: #43a047;
   }
   
-  .submit-button {
+  .submit-button, .login {
     background-color: #764ba2;
     border: none;
+    &:hover{
+      background-color: #6a3d8e;
+    }
   }
   
   .submit-button:hover {
