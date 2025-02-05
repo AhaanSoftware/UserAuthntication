@@ -27,6 +27,10 @@ const UserSchema = new mongoose.Schema({
     phoneNo:{
         type: Number
     },
+    isVerified: {
+        type: Boolean,
+        default: false,  
+      },
    
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
