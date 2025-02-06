@@ -10,7 +10,6 @@ import {
   Alert,
   Card,
 } from "react-bootstrap";
-import EmailVerificationForm from "./Email";
 import "./Register.css"; // Custom CSS for styling
 
 const Signup = () => {
@@ -18,37 +17,94 @@ const Signup = () => {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [otp, setOtp] = useState("");
-  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [reenterPassword, setReenterPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false); // Track email verification status
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [showOtpField, setShowOtpField] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [verificationError, setVerificationError] = useState(false);
   const navigate = useNavigate();
 
-  // Handle Signup Form Submission
+  const handleEmailVerified = () => {
+    setEmailVerified(true); // Set email as verified when OTP is validated
+  };
+
+  // Handle email verification request
+  const handleVerifyEmail = async () => {
+    try {
+      const response = await axios.post("http://localhost:3000/user/verify-email", { email });
+      if (response.status === 200) {
+        setShowOtpField(true);
+        setVerificationError(false); // Reset previous errors
+      }
+    } catch (error) {
+      console.error("Error during email verification:", error);
+      setVerificationError(true); // Mark verification error
+    }
+  };
+
+  // Handle OTP input change
+  const handleOtpChange = (index, value) => {
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto-focus to the next input field when a digit is entered
+    if (value && index < 5) {
+      document.getElementById(`otp-input-${index + 1}`).focus();
+    }
+
+    // Check if all OTP digits are filled
+    if (newOtp.every((digit) => digit !== "")) {
+      const otpCode = newOtp.join("");
+      verifyOtp(otpCode);
+    }
+  };
+
+  // Function to verify OTP
+  const verifyOtp = async (otpCode) => {
+    try {
+      const response = await axios.post("http://localhost:3000/user/verify-otp", { email, otp: otpCode });
+      if (response.status === 200 && response.data.success) {
+        setOtpVerified(true);
+        setVerificationError(false);
+        handleEmailVerified(); // Notify parent component that email is verified
+      } else {
+        setOtpVerified(false);
+        setVerificationError(true);
+      }
+    } catch (error) {
+      setVerificationError(true);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !password ||
-      !mobile ||
-      !otpVerified
-    ) {
-      return setError("Please fill all required fields and verify OTP");
+    // Check if all fields are filled and passwords match
+    if (!firstName || !lastName || !password || !reenterPassword) {
+      return setError("Please fill all required fields.");
+    }
+
+    if (password !== reenterPassword) {
+      return setError("Passwords do not match.");
+    }
+
+    // Check if email is verified before proceeding
+    if (!emailVerified) {
+      return setError("Please verify your email before registering.");
     }
 
     try {
-      const response = await axios.post("/register", {
+      const response = await axios.post("http://localhost:3000/user/signup", {
         firstName,
         lastName,
         email,
         password,
-        mobile,
       });
+
       setSuccess(response.data.msg);
       setError("");
       setTimeout(() => navigate("/login"), 2000);
@@ -58,51 +114,9 @@ const Signup = () => {
     }
   };
 
-  // Request OTP for Mobile Verification
-  const handleRequestOtp = async () => {
-    if (!mobile) return setError("Please enter a valid mobile number");
-    try {
-      await axios.post("/api/request-otp", { mobile });
-      setIsOtpSent(true);
-      setError("");
-    } catch (err) {
-      setError(err.response ? err.response.data.msg : "Failed to send OTP");
-    }
-  };
-
-  // Verify OTP for Mobile Verification
-  const handleVerifyOtp = async () => {
-    if (!otp) return setError("Please enter the OTP");
-    try {
-      const response = await axios.post("/api/verify-otp", { mobile, otp });
-      if (response.data.success) {
-        setOtpVerified(true);
-        setSuccess("OTP Verified");
-        setError("");
-      } else {
-        setError("Invalid OTP");
-      }
-    } catch (err) {
-      setError("Failed to verify OTP");
-    }
-  };
-
-  // Handle OTP input (for 5-digit OTP)
-  const handleOtpChange = (e, index) => {
-    let value = e.target.value;
-    if (value.length === 1 && !isNaN(value)) {
-      let otpArray = otp.split("");
-      otpArray[index] = value;
-      setOtp(otpArray.join(""));
-    }
-  };
-
   return (
-    <Container
-      fluid
-      className="signup-container d-flex justify-content-center align-items-center"
-    >
-      <Card className="signup-card p-2">
+    <Container fluid className="signup-container d-flex justify-content-center align-items-center">
+      <Card className="signup-card p-4">
         <h2 className="text-center mb-4">Signup</h2>
 
         {error && <Alert variant="danger">{error}</Alert>}
@@ -133,74 +147,71 @@ const Signup = () => {
               </Form.Group>
             </Col>
 
-            <EmailVerificationForm />
-
-            <Form.Group controlId="formPassword" className="mb-3">
-              <Form.Control
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="form-input"
-              />
-            </Form.Group>
-
-            <Form.Group controlId="formMobile" className="mb-3">
-              <div className="row">
-                <Col md={8} className="mb-3">
-                  <Form.Control
-                    type="text"
-                    placeholder="Mobile Number"
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    className="form-input"
-                  />
-                </Col>
-                <Col md={4} className="mb-3">
-                  <Button
-                    variant="primary"
-                    onClick={handleRequestOtp}
-                    className="otp-button w-100" // w-100 makes the button fill the column width
-                  >
-                    Send OTP
+            {/* Email Verification Form */}
+            <Row className="mb-3">
+              <Col md={otpVerified ? 12 : 8}>
+                <Form.Control
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={showOtpField || otpVerified}
+                />
+              </Col>
+              <Col md={otpVerified ? 0 : 4}>
+                {!otpVerified && (
+                  <Button onClick={handleVerifyEmail} className="verify-button w-100">
+                    Verify
                   </Button>
-                </Col>
-              </div>
-            </Form.Group>
+                )}
+              </Col>
+            </Row>
 
-            {isOtpSent && (
-              <>
-                <Form.Group controlId="formOtp" className="mb-3">
-                  <div className="d-flex justify-content-between">
-                    {Array(5)
-                      .fill("")
-                      .map((_, index) => (
-                        <Form.Control
-                          key={index}
-                          type="text"
-                          maxLength="1"
-                          value={otp[index] || ""}
-                          onChange={(e) => handleOtpChange(e, index)}
-                          className="otp-input"
-                        />
-                      ))}
-                  </div>
-                </Form.Group>
-                <Button
-                  variant="primary"
-                  onClick={handleVerifyOtp}
-                  className="w-100 mb-3 verify-button"
-                >
-                  Verify OTP
-                </Button>
-              </>
+            {showOtpField && !otpVerified && (
+              <Form.Group controlId="formOtp" className="mb-3">
+                <div className="d-flex" style={{ gap: "10px" }}>
+                  {otp.map((digit, index) => (
+                    <Form.Control
+                      key={index}
+                      id={`otp-input-${index}`}
+                      type="text"
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      maxLength={1}
+                      className={`otp-input text-center ${verificationError ? "border-danger" : ""}`}
+                      style={{ flex: 1, width: "20%" }}
+                    />
+                  ))}
+                </div>
+              </Form.Group>
             )}
 
-            <Button
-              variant="success"
-              type="submit"
-              className="w-50 submit-button"
-            >
+            <Col xs={12} md={12}>
+              <Form.Group controlId="formPassword" className="mb-3">
+                <Form.Control
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="form-input"
+                />
+              </Form.Group>
+            </Col>
+
+            {/* Re-enter Password field */}
+            <Col xs={12} md={12}>
+              <Form.Group controlId="formReenterPassword" className="mb-3">
+                <Form.Control
+                  type="password"
+                  placeholder="Re-enter Password"
+                  value={reenterPassword}
+                  onChange={(e) => setReenterPassword(e.target.value)}
+                  className="form-input"
+                />
+              </Form.Group>
+            </Col>
+
+            <Button variant="success" type="submit" className="w-50 submit-button">
               Register
             </Button>
           </Row>

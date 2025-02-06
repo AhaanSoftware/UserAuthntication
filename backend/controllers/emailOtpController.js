@@ -2,6 +2,7 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const Otp = require('../models/otpModel');  // Import your OTP model
 const User = require('../models/userModel');
+const EmailVerification=require('../models/emailVerification')
 // Create a reusable transporter object using SMTP transport
 const transporter = nodemailer.createTransport({
     service: 'gmail', // or another email service
@@ -34,49 +35,49 @@ const sendOtpEmail = (email, otp) => {
     });
 };
 
-// Controller to handle OTP request via email
 const requestEmailOtp = async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-      return res.status(400).json({ msg: 'Please provide a valid email address' });
-  }
-
-  try {
-      // Generate a 6-digit OTP
-      const otp = generateOtp();
-
-      // Check if there's an existing OTP for this email that is still valid
-      const existingOtp = await Otp.findOne({ email });
-
-      if (existingOtp) {
-          // Check if the existing OTP has expired
-          if (existingOtp.expiry > Date.now()) {
-              return res.status(400).json({ msg: 'An OTP has already been sent. Please wait for it to expire.' });
-          }
-
-          // If OTP expired, delete the old OTP and create a new one
-          await Otp.deleteOne({ email });
-      }
-
-      // Store the OTP with an expiration time (e.g., 5 minutes)
-      const otpData = new Otp({
-          email,
-          otp,
-          expiry: Date.now() + 5 * 60 * 1000, // OTP expires in 5 minutes
-      });
-
-      await otpData.save();  // Save OTP in the database
-
-      // Send the OTP to the email
-      sendOtpEmail(email, otp);
-
-      res.json({ msg: 'OTP sent successfully' });
-  } catch (error) {
-      console.error('Error while requesting OTP:', error);
-      res.status(500).json({ msg: 'Server error while sending OTP' });
-  }
-};
+    const { email } = req.body;
+  
+    if (!email) {
+        return res.status(400).json({ msg: 'Please provide a valid email address' });
+    }
+  
+    try {
+        // Generate a 6-digit OTP
+        const otp = generateOtp();
+  
+        // Check if there's an existing OTP for this email that is still valid
+        const existingOtp = await EmailVerification.findOne({ email });
+  
+        if (existingOtp) {
+            // Check if the existing OTP has expired
+            if (existingOtp.otpExpiry > Date.now()) {
+                return res.status(400).json({ msg: 'An OTP has already been sent. Please wait for it to expire.' });
+            }
+  
+            // If OTP expired, delete the old OTP and create a new one
+            await EmailVerification.deleteOne({ email });
+        }
+  
+        // Store the OTP with an expiration time (e.g., 5 minutes)
+        const otpData = new EmailVerification({
+            email,
+            otp,
+            otpExpiry: Date.now() + 5 * 60 * 1000, // OTP expires in 5 minutes
+        });
+  
+        await otpData.save();  // Save OTP in the database
+  
+        // Send the OTP to the email
+        sendOtpEmail(email, otp);
+  
+        res.json({ msg: 'OTP sent successfully' });
+    } catch (error) {
+        console.error('Error while requesting OTP:', error);
+        res.status(500).json({ msg: 'Server error while sending OTP' });
+    }
+  };
+  
 
 
 // Controller to verify OTP
@@ -84,40 +85,33 @@ const verifyEmailOtp = async (req, res) => {
   const { email, otp } = req.body;
 
   if (!email || !otp) {
-      return res.status(400).json({ msg: 'Please provide both email and OTP' });
+    return res.status(400).json({ msg: 'Please provide both email and OTP' });
   }
 
   try {
-      // Find the email verification record in the database
-      const emailVerification = await EmailVerification.findOne({ email });
+    const emailVerification = await EmailVerification.findOne({ email });
 
-      if (!emailVerification) {
-          return res.status(400).json({ msg: 'No OTP request found for this email' });
-      }
+    if (!emailVerification) {
+      return res.status(400).json({ msg: 'No OTP request found for this email' });
+    }
 
-      // Check if OTP has expired
-      if (Date.now() > emailVerification.otpExpiry) {
-          await EmailVerification.deleteOne({ email });  // Remove expired OTP
-          return res.status(400).json({ msg: 'OTP has expired' });
-      }
+    if (Date.now() > emailVerification.otpExpiry) {
+      await EmailVerification.deleteOne({ email });
+      return res.status(400).json({ msg: 'OTP has expired. Please request a new one.' });
+    }
 
-      // Check if OTP is correct
-      if (emailVerification.otp === otp) {
-          // Mark the email as verified
-          emailVerification.isVerified = true;
-          await emailVerification.save();
-
-          res.json({ success: true, msg: 'Email verified successfully' });
-      } else {
-          return res.status(400).json({ msg: 'Invalid OTP' });
-      }
+    if (emailVerification.otp === otp) {
+      emailVerification.isVerified = true;
+      await emailVerification.save();
+      res.json({ success: true, msg: 'Email verified successfully' });
+    } else {
+      return res.status(400).json({ msg: 'Invalid OTP' });
+    }
   } catch (error) {
-      console.error('Error while verifying OTP:', error);
-      res.status(500).json({ msg: 'Server error while verifying OTP' });
+    console.error('Error while verifying OTP:', error);
+    res.status(500).json({ msg: 'Server error while verifying OTP' });
   }
 };
-
-
 
 
 module.exports = { requestEmailOtp, verifyEmailOtp };
