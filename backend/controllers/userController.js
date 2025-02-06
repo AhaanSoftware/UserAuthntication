@@ -1,12 +1,18 @@
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const EmailVerification=require('../models/emailVerification')
 
+const nodemailer = require('nodemailer');
 
-
-// Email Validation Function
-
-
+// Create a reusable transporter object using SMTP transport
+const transporter = nodemailer.createTransport({
+    service: 'gmail', // or another email service
+    auth: {
+        user: "soumitra.ahaansoftware@gmail.com", // Your email
+        pass: "jqnt jewb lvro smjo", // Your app password or real password
+    },
+});
 const generateAccessToken = (user) => {    
     return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 };
@@ -39,9 +45,39 @@ const registerUser = async (req, res) => {
             lastName,
             email,
             password: hashedPassword,
+            isVerified: true, // Mark user as verified
         });
 
         await newUser.save();
+
+        // Delete the email verification record after successful registration
+        await EmailVerification.deleteOne({ email });
+
+        // Send email notification to a specific email (e.g., admin)
+        const mailOptions = {
+            from: process.env.EMAIL_USER,  // Your email
+            to: email,       // The email you want to send to (e.g., admin email)
+            subject: 'New User Registration', // Subject of the email
+            text: `
+            Thank You! 
+            User has successfully Register.
+
+            Full Name: ${firstName} ${lastName}
+            Email: ${email}
+
+            Description: 
+            Please review and check your Details.
+            `, // Custom description with user details
+        };
+
+        // Send the email
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('Error sending notification email:', error);
+            } else {
+                console.log('Notification email sent:', info.response);
+            }
+        });
 
         res.status(201).json({ msg: 'User registered successfully' });
 
@@ -50,6 +86,7 @@ const registerUser = async (req, res) => {
         res.status(500).json({ msg: 'Server error during registration' });
     }
 };
+
 
 
 const loginUser = async (req, res) => {

@@ -4,7 +4,7 @@ html, body {
     margin: 0;
   }
   .background {
-    background: linear-gradient(135deg, #7ad8c4, #d8e69b);
+    
   }
   /* Center the auth container in the viewport */
   .auth-container {

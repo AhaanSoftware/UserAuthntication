@@ -7,7 +7,7 @@ router.post('/verify-email', requestEmailOtp);
 
 router.post('/verify-otp', verifyEmailOtp);
 
-router.post('/signup', registerUser);
+router.post('/signup', registerUser);        
 
 
 router.post("/login", loginUser)
