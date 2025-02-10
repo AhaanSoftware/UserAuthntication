@@ -10,6 +10,8 @@ import Register from "./Components/Layouts/Auth/User/Register";
 import Login from "./Components/Layouts/Auth/User/Login";
 import EmailVerificationForm from "./Components/Layouts/Auth/User/Email";
 import AuthPage from "./Components/Layouts/Auth/AuthPage";
+import ProductList from "./Components/Layouts/Body/ProductList";
+
 
 function App() {
   const productId = ["8929771684077"];
@@ -21,6 +23,7 @@ function App() {
         <Route path="/" element={<ProductDetails productId={productId} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/product" element={<ProductList/>} />
       </Routes>
     </Router>
   );

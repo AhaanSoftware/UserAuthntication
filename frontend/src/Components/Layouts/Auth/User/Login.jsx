@@ -31,7 +31,7 @@ const Login = () => {
 
       // Redirect to the homepage (or dashboard)
       setTimeout(() => {
-        navigate("/details");
+        navigate("/");
       }, 2000);
     } catch (err) {
       setError(err.response ? err.response.data.msg : "Server error");
